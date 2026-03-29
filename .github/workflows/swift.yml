@@ -27,6 +27,32 @@ jobs:
             CODE_SIGNING_ALLOWED=NO \
             build
 
+      - name: Locate .app
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APP_PATH="$(find "$HOME/Library/Developer/Xcode/DerivedData" \
+            -type d -name "MiddleQuit.app" \
+            -path "*Build/Products/Release*" \
+            | head -n 1)"
+
+          if [[ -z "${APP_PATH}" ]]; then
+            echo "MiddleQuit.app not found in DerivedData."
+            echo "Dumping Build/Products directories for debugging:"
+            find "$HOME/Library/Developer/Xcode/DerivedData" -type d -path "*Build/Products*" | head -n 200  # limit output to avoid log flooding
+            exit 1
+          fi
+
+          echo "Found app at: ${APP_PATH}"
+          echo "APP_PATH=${APP_PATH}" >> "$GITHUB_ENV"
+
+      - name: Upload .app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: MiddleQuit.app
+          path: ${{ env.APP_PATH }}
+
       # - name: Test
       #   run: |
       #     xcodebuild \
