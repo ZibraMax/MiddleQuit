@@ -47,18 +47,30 @@ jobs:
           echo "Found app at: ${APP_PATH}"
           echo "APP_PATH=${APP_PATH}" >> "$GITHUB_ENV"
 
-      - name: Zip .app bundle
+      - name: Create DMG
         shell: bash
         run: |
           set -euo pipefail
-          ditto -c -k --keepParent "${APP_PATH}" /tmp/MiddleQuit.app.zip
-          echo "ZIP_PATH=/tmp/MiddleQuit.app.zip" >> "$GITHUB_ENV"
 
-      - name: Upload .app artifact
+          # Staging folder: app + /Applications symlink for drag-and-drop install
+          DMG_STAGING="$(mktemp -d)"
+          cp -R "${APP_PATH}" "${DMG_STAGING}/"
+          ln -s /Applications "${DMG_STAGING}/Applications"
+
+          hdiutil create \
+            -volname "MiddleQuit" \
+            -srcfolder "${DMG_STAGING}" \
+            -ov \
+            -format UDZO \
+            /tmp/MiddleQuit.dmg
+
+          echo "DMG_PATH=/tmp/MiddleQuit.dmg" >> "$GITHUB_ENV"
+
+      - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
-          name: MiddleQuit.app
-          path: ${{ env.ZIP_PATH }}
+          name: MiddleQuit.dmg
+          path: ${{ env.DMG_PATH }}
 
       # - name: Test
       #   run: |
